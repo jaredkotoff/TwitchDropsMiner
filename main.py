@@ -20,18 +20,15 @@ if __name__ == "__main__":
     from tkinter import messagebox
     from typing import IO, NoReturn
 
-    from PIL.ImageTk import PhotoImage
-    from PIL import Image as Image_module
-
     if sys.platform == "win32":
         import win32gui
 
     from translate import _
     from twitch import Twitch
     from settings import Settings
-    from utils import resource_path
     from version import __version__
     from exceptions import CaptchaRequired
+    from utils import resource_path, set_root_icon
     from constants import CALL, SELF_PATH, FILE_FORMATTER, LOG_PATH, WINDOW_TITLE
 
     warnings.simplefilter("default", ResourceWarning)
@@ -97,10 +94,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.overrideredirect(True)
     root.withdraw()
-    with Image_module.open(resource_path("pickaxe.ico")) as image:
-        root.iconphoto(
-            True, PhotoImage(master=root, image=image)
-        )
+    set_root_icon(root, resource_path("pickaxe.ico"))
     root.update()
     parser = Parser(
         SELF_PATH.name,
