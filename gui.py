@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import os
 import re
 import sys
 import ctypes
 import asyncio
 import logging
-import webbrowser
 import tkinter as tk
+from pathlib import Path
 from collections import abc
+from textwrap import dedent
 from math import log10, ceil
 from dataclasses import dataclass
 from tkinter.font import Font, nametofont
@@ -29,7 +31,7 @@ if sys.platform == "win32":
 from translate import _
 from cache import ImageCache
 from exceptions import ExitRequest
-from utils import resource_path, set_root_icon, Game, _T
+from utils import resource_path, set_root_icon, webopen, Game, _T
 from constants import (
     SELF_PATH, OUTPUT_FORMATTER, WS_TOPICS_LIMIT, MAX_WEBSOCKETS, WINDOW_TITLE, State
 )
@@ -341,10 +343,7 @@ class LinkLabel(ttk.Label):
             # W, N, E, S
             kwargs["padding"] = (0, 2, 0, 2)
         super().__init__(*args, **kwargs)
-        self.bind("<ButtonRelease-1>", self.webopen(self._link))
-
-    def webopen(self, url: str):
-        return lambda e: webbrowser.open_new_tab(url)
+        self.bind("<ButtonRelease-1>", lambda e: webopen(self._link))
 
 
 class SelectMenu(tk.Menubutton, Generic[_T]):
@@ -555,7 +554,7 @@ class LoginForm:
         self._manager.print(_("gui", "login", "request"))
         await self.wait_for_login_press()
         self._manager.print(f"Enter this code on the Twitch's device activation page: {user_code}")
-        webbrowser.open_new_tab("https://www.twitch.tv/activate")
+        webopen("https://www.twitch.tv/activate")
 
     def update(self, status: str, user_id: int | None):
         if user_id is not None:
@@ -1046,10 +1045,8 @@ class TrayIcon:
         self._button.grid(column=0, row=0, sticky="ne")
 
     def __del__(self) -> None:
+        self.stop()
         self.icon_image.close()
-
-    def is_tray(self) -> bool:
-        return self.icon is not None
 
     def get_title(self, drop: TimedDrop | None) -> str:
         if drop is None:
@@ -1062,22 +1059,22 @@ class TrayIcon:
             f"{drop.progress:.1%} ({campaign.claimed_drops}/{campaign.total_drops})"
         )
 
-    def start(self):
-        if self.icon is None:
-            loop = asyncio.get_running_loop()
-            drop = self._manager.progress._drop
+    def _start(self):
+        loop = asyncio.get_running_loop()
+        drop = self._manager.progress._drop
 
-            # we need this because tray icon lives in a separate thread
-            def bridge(func):
-                return lambda: loop.call_soon_threadsafe(func)
+        # we need this because tray icon lives in a separate thread
+        def bridge(func):
+            return lambda: loop.call_soon_threadsafe(func)
 
-            menu = pystray.Menu(
-                pystray.MenuItem(_("gui", "tray", "show"), bridge(self.restore), default=True),
-                pystray.Menu.SEPARATOR,
-                pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
-            )
-            self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
-            self.icon.run_detached()
+        menu = pystray.Menu(
+            pystray.MenuItem(_("gui", "tray", "show"), bridge(self.restore), default=True),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(_("gui", "tray", "quit"), bridge(self.quit)),
+        )
+        self.icon = pystray.Icon("twitch_miner", self.icon_image, self.get_title(drop), menu)
+        # self.icon.run_detached()
+        loop.run_in_executor(None, self.icon.run)
 
     def stop(self):
         if self.icon is not None:
@@ -1088,13 +1085,16 @@ class TrayIcon:
         self._manager.close()
 
     def minimize(self):
-        if not self.is_tray():
-            self.start()
-            self._manager._root.withdraw()
+        if self.icon is None:
+            self._start()
+        else:
+            self.icon.visible = True
+        self._manager._root.withdraw()
 
     def restore(self):
-        if self.is_tray():
-            self.stop()
+        if self.icon is not None:
+            # self.stop()
+            self.icon.visible = False
         self._manager._root.deiconify()
 
     def notify(
@@ -1104,7 +1104,7 @@ class TrayIcon:
         if not self._manager._twitch.settings.tray_notifications:
             return None
         if self.icon is not None:
-            icon = self.icon
+            icon = self.icon  # nonlocal scope bind
 
             async def notifier():
                 icon.notify(message, title)
@@ -1636,6 +1636,12 @@ class SettingsPanel:
     def update_notifications(self) -> None:
         self._settings.tray_notifications = bool(self._vars["tray_notifications"].get())
 
+    def _get_autostart_path(self, tray: bool) -> str:
+        self_path = f'"{SELF_PATH.resolve()!s}"'
+        if tray:
+            self_path += " --tray"
+        return self_path
+
     def update_autostart(self) -> None:
         enabled = bool(self._vars["autostart"].get())
         tray = bool(self._vars["tray"].get())
@@ -1644,14 +1650,34 @@ class SettingsPanel:
         if sys.platform == "win32":
             if enabled:
                 # NOTE: we need double quotes in case the path contains spaces
-                self_path = f'"{SELF_PATH.resolve()!s}"'
-                if tray:
-                    self_path += " --tray"
+                autostart_path = self._get_autostart_path(tray)
                 with RegistryKey(self.AUTOSTART_KEY) as key:
-                    key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, self_path)
+                    key.set(self.AUTOSTART_NAME, ValueType.REG_SZ, autostart_path)
             else:
                 with RegistryKey(self.AUTOSTART_KEY) as key:
                     key.delete(self.AUTOSTART_NAME, silent=True)
+        elif sys.platform == "linux":
+            autostart_folder: Path = Path("~/.config/autostart").expanduser()
+            if (config_home := os.environ.get("XDG_CONFIG_HOME")) is not None:
+                config_autostart: Path = Path(config_home, "autostart").expanduser()
+                if config_autostart.exists():
+                    autostart_folder = config_autostart
+            autostart_file: Path = autostart_folder / f"{self.AUTOSTART_NAME}.desktop"
+            if enabled:
+                autostart_path = self._get_autostart_path(tray)
+                file_contents = dedent(
+                    f"""
+                    [Desktop Entry]
+                    Type=Application
+                    Name=Twitch Drops Miner
+                    Description=Mine timed drops on Twitch
+                    Exec=sh -c '{autostart_path}'
+                    """
+                )
+                with autostart_file.open("w", encoding="utf8") as file:
+                    file.write(file_contents)
+            else:
+                autostart_file.unlink(missing_ok=True)
 
     def set_games(self, games: abc.Iterable[Game]) -> None:
         games_list = sorted(map(str, games))
@@ -1847,7 +1873,7 @@ class GUIManager:
         self._twitch: Twitch = twitch
         self._poll_task: asyncio.Task[NoReturn] | None = None
         self._close_requested = asyncio.Event()
-        self._root = root = Tk()
+        self._root = root = Tk(className=WINDOW_TITLE)
         # withdraw immediately to prevent the window from flashing
         self._root.withdraw()
         # root.resizable(False, True)
@@ -1965,6 +1991,7 @@ class GUIManager:
             # ctypes.windll.user32.ShutdownBlockReasonDestroy(self._handle)
         else:
             # use old-style window closing protocol for non-windows platforms
+            root.protocol("WM_DELETE_WINDOW", self.close)
             root.protocol("WM_DESTROY_WINDOW", self.close)
         # stay hidden in tray if needed, otherwise show the window when everything's ready
         if self._twitch.settings.tray:
