@@ -9,7 +9,7 @@ from typing import Any, SupportsInt, TYPE_CHECKING
 
 from utils import invalidate_cache, json_minify, Game
 from exceptions import MinerException, RequestException
-from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, DROPS_ENABLED_TAG, URLType
+from constants import BASE_URL, GQL_OPERATIONS, ONLINE_DELAY, URLType
 
 if TYPE_CHECKING:
     from twitch import Twitch
@@ -31,12 +31,11 @@ class Stream:
         game: JsonType | None,
         viewers: int,
         title: str,
-        tags: list[JsonType],
     ):
         self.channel: Channel = channel
         self.broadcast_id = int(id)
         self.viewers: int = viewers
-        self.drops_enabled: bool = any(t["id"] == DROPS_ENABLED_TAG for t in tags)
+        self.drops_enabled: bool = False
         self.game: Game | None = Game(game) if game else None
         self.title: str = title
 
@@ -50,21 +49,20 @@ class Stream:
             game=settings["game"],
             viewers=stream["viewersCount"],
             title=settings["title"],
-            tags=stream["tags"] or [],
         )
 
     @classmethod
-    def from_directory(cls, channel: Channel, data: JsonType) -> Stream:
+    def from_directory(
+        cls, channel: Channel, data: JsonType, *, drops_enabled: bool = False
+    ) -> Stream:
         self = cls(
             channel,
             id=data["id"],
             game=data["game"],  # has to be there since we searched with it
             viewers=data["viewersCount"],
             title=data["title"],
-            tags=[],
         )
-        # HACK: we assume this is always the case for directory streams, since we search by the tag
-        # self.drops_enabled = True
+        self.drops_enabled = drops_enabled
         return self
 
     def __eq__(self, other: object) -> bool:
@@ -109,12 +107,14 @@ class Channel:
         )
 
     @classmethod
-    def from_directory(cls, twitch: Twitch, data: JsonType) -> Channel:
+    def from_directory(
+        cls, twitch: Twitch, data: JsonType, *, drops_enabled: bool = False
+    ) -> Channel:
         channel = data["broadcaster"]
         self = cls(
             twitch, id=channel["id"], login=channel["login"], display_name=channel["displayName"]
         )
-        self._stream = Stream.from_directory(self, data)
+        self._stream = Stream.from_directory(self, data, drops_enabled=drops_enabled)
         return self
 
     @classmethod
@@ -255,7 +255,15 @@ class Channel:
         self._display_name = stream_data["displayName"]
         if not stream_data["stream"]:
             return None
-        return Stream.from_get_stream(self, stream_data)
+        stream = Stream.from_get_stream(self, stream_data)
+        available_drops: JsonType = await self._twitch.gql_request(
+            GQL_OPERATIONS["AvailableDrops"].with_variables({"channelID": str(self.id)})
+        )
+        stream.drops_enabled = any(
+            bool(c["timeBasedDrops"])
+            for c in (available_drops["data"]["channel"]["viewerDropCampaigns"] or [])
+        )
+        return stream
 
     async def update_stream(self, *, trigger_events: bool) -> bool:
         """
@@ -345,8 +353,14 @@ class Channel:
             {
                 "event": "minute-watched",
                 "properties": {
-                    "channel_id": self.id,
-                    "broadcast_id": self._stream.broadcast_id,
+                    "broadcast_id": str(self._stream.broadcast_id),
+                    "channel_id": str(self.id),
+                    "channel": self._login,
+                    "hidden": False,
+                    "live": True,
+                    "location": "channel",
+                    "logged_in": True,
+                    "muted": False,
                     "player": "site",
                     "user_id": self._twitch._auth_state.user_id,
                 }
