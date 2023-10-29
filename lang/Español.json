@@ -1,4 +1,5 @@
 {
+    "english_name": "Spanish",
     "status": {
         "terminated": "\nLa aplicación se ha detenido.\nPor favor, cierre la aplicación.",
         "watching": "Mirando el canal: {channel}",
@@ -107,7 +108,7 @@
             "filter": {
                 "name": "Filtro de campañas",
                 "show": "Mostrar:",
-                "linked": "Vinculadas",
+                "not_linked": "No enlazado",
                 "upcoming": "Próximas",
                 "expired": "Expiradas",
                 "excluded": "Excluidas",

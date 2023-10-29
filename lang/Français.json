@@ -1,4 +1,5 @@
 {
+    "english_name": "French",
     "status": {
         "terminated": "\nL'application a été arrêtée.\nVeuillez fermer l'application.",
         "watching": "En train de regarder : {channel}",
@@ -107,7 +108,7 @@
             "filter": {
                 "name": "Filtre",
                 "show": "Afficher :",
-                "linked": "Liés uniquement",
+                "not_linked": "Non lié",
                 "upcoming": "À venir",
                 "expired": "Expiré",
                 "excluded": "Exclu",

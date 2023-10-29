@@ -1,4 +1,5 @@
 {
+    "english_name": "Italian",
     "status": {
         "terminated": "\nApplicazione Terminata.\nChiudi la finestra per uscire dall'applicazione.",
         "watching": "Guardando: {channel}",
@@ -107,7 +108,7 @@
             "filter": {
                 "name": "Filtro",
                 "show": "Mostra:",
-                "linked": "Solo collegati",
+                "not_linked": "Non collegato",
                 "upcoming": "In arrivo",
                 "expired": "Scaduti",
                 "excluded": "Esclusi",

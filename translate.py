@@ -130,7 +130,7 @@ class GUIChannels(TypedDict):
 class GUIInvFilter(TypedDict):
     name: str
     show: str
-    linked: str
+    not_linked: str
     upcoming: str
     expired: str
     excluded: str
@@ -208,6 +208,7 @@ class GUIMessages(TypedDict):
 
 class Translation(TypedDict):
     language_name: NotRequired[str]
+    english_name: str
     status: StatusMessages
     login: LoginMessages
     error: ErrorMessages
@@ -215,6 +216,7 @@ class Translation(TypedDict):
 
 
 default_translation: Translation = {
+    "english_name": "English",
     "status": {
         "terminated": "\nApplication Terminated.\nClose the window to exit the application.",
         "watching": "Watching: {channel}",
@@ -330,7 +332,7 @@ default_translation: Translation = {
             "filter": {
                 "name": "Filter",
                 "show": "Show:",
-                "linked": "Linked only",
+                "not_linked": "Not linked",
                 "upcoming": "Upcoming",
                 "expired": "Expired",
                 "excluded": "Excluded",

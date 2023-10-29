@@ -1,4 +1,5 @@
 {
+    "english_name": "Polish",
     "status": {
         "terminated": "\nAplikacja została zatrzymana.\nZamknij okno, aby wyjść z aplikacji.",
         "watching": "Oglądam kanał: {channel}",
@@ -107,7 +108,7 @@
             "filter": {
                 "name": "Filtr",
                 "show": "Pokaż:",
-                "linked": "Tylko połączone",
+                "not_linked": "Nie połączone",
                 "upcoming": "Nadchodzące",
                 "expired": "Wygasłe",
                 "excluded": "Wykluczone",
@@ -116,7 +117,7 @@
             },
             "status": {
                 "linked": "Połączono ✔",
-                "not_linked": "Niepołączono ❌",
+                "not_linked": "Nie połączono ❌",
                 "active": "Aktywna ✔",
                 "upcoming": "Nadchodząca ⏳",
                 "expired": "Wygasła ❌",

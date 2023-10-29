@@ -1,4 +1,5 @@
 {
+    "english_name": "German",
     "status": {
         "terminated": "\nAnwendung gestoppt.\nFenster schließen, um die Anwendung zu beenden",
         "watching": "{channel} wird zugesehen",
@@ -107,7 +108,7 @@
             "filter": {
                 "name": "Filter",
                 "show": "Anzeigen:",
-                "linked": "Nur verknüpfte",
+                "not_linked": "Nicht verbunden",
                 "upcoming": "Zukünftig",
                 "expired": "Abgelaufen",
                 "excluded": "Ausgeschlossen",
