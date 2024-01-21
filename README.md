@@ -45,7 +45,8 @@ Every ~60 seconds, the application sends a "minute watched" event to the channel
 
 ### Notes about the Linux build:
 
-- The Linux app is built and distributed in a portable-executable format (similar to [AppImages](https://appimage.org/)).
+- The Linux app is built and distributed using two distinct portable-executable formats: [AppImage](https://appimage.org/) and [PyInstaller](https://pyinstaller.org/).
+- There are no major differences between the two formats, but if you're looking for a recommendation, use the AppImage.
 - The Linux app should work out of the box on any modern distribution (as long as it has `glibc>=2.31` and a working display server).
 - Every feature of the app is expected to work on Linux just as well as it does on Windows. If you find something that's broken, please [open a new issue](https://github.com/DevilXD/TwitchDropsMiner/issues/new).
 - The size of the Linux app is significantly larger than the Windows app due to the inclusion of the `gtk3` library (and its dependencies), which is required for proper system tray/notifications support.
@@ -126,4 +127,5 @@ if they aren't already there. Doing so ensures proper markdown rendering on Gith
 @Patriot99 - For the Polish (Polski) translation (co-authored with @DevilXD).  
 @Nollasko - For the entirety of the Ukrainian (Українська) translation.  
 @casungo - For the entirety of the Italian (Italiano) translation.  
-@Bamboozul - For the entirety of the Arabic (العربية) translation.
+@Bamboozul - For the entirety of the Arabic (العربية) translation.  
+@Kjerne - For the entirety of the Danish (Dansk) translation.
