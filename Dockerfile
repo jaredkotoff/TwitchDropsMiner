@@ -13,8 +13,10 @@ RUN pip install -r requirements.txt
 RUN chmod +x ./docker_entrypoint.sh
 ENTRYPOINT ["./docker_entrypoint.sh"]
 
+HEALTHCHECK --interval=10s --timeout=5s --start-period=1m --retries=3 CMD ./healthcheck.sh
+
 ENV UNLINKED_CAMPAIGNS=1
-CMD ["timeout", "15m", "python", "main.py", "-vvv"]
+CMD ["python", "main.py", "-vvv"]
 
 # Example command to build:
 # docker build -t twitch_drops_miner .
