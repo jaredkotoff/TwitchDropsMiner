@@ -22,4 +22,8 @@ CMD ["python", "main.py", "-vvv"]
 # docker build -t twitch_drops_miner .
 
 # Suggested command to run:
-# docker run -it --init --restart=always -v ./cookies.jar:/TwitchDropsMiner/cookies.jar -v ./settings.json:/TwitchDropsMiner/settings.json:ro twitch_drops_miner
+# docker run -itd --init --pull=always --restart=always -v ./cookies.jar:/TwitchDropsMiner/cookies.jar -v ./settings.json:/TwitchDropsMiner/settings.json:ro --name twitch_drops_miner ghcr.io/valentin-metz/twitchdropsminer:master
+
+# Suggested additional containers for monitoring:
+# docker run -d --restart=always --name autoheal -e AUTOHEAL_CONTAINER_LABEL=all -v /var/run/docker.sock:/var/run/docker.sock willfarrell/autoheal
+# docker run -d --restart=always --name watchtower -v /var/run/docker.sock:/var/run/docker.sock -v /etc/localtime:/etc/localtime:ro -v ~/.docker/config.json:/config.json:ro containrrr/watchtower --cleanup --include-restarting --include-stopped --interval 60
