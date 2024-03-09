@@ -887,8 +887,6 @@ class Twitch:
                 else:
                     # with no games available, we switch to IDLE after cleanup
                     self.print(_("status", "no_campaign"))
-                    with open('healthcheck.timestamp', 'w') as f:
-                        f.write(str(int(time())))
                     self.change_state(State.IDLE)
             elif self._state is State.CHANNELS_FETCH:
                 self.gui.status.update(_("gui", "status", "gathering"))
@@ -1030,8 +1028,6 @@ class Twitch:
                 else:
                     # not watching anything and there isn't anything to watch either
                     self.print(_("status", "no_channel"))
-                    with open('healthcheck.timestamp', 'w') as f:
-                        f.write(str(int(time())))
                     self.change_state(State.IDLE)
                 del new_watching, selected_channel, watching_channel
             elif self._state is State.EXIT:
@@ -1123,7 +1119,7 @@ class Twitch:
     @task_wrapper
     async def _maintenance_task(self) -> None:
         claim_period = timedelta(minutes=30)
-        max_period = timedelta(minutes=5)
+        max_period = timedelta(hours=1)
         now = datetime.now(timezone.utc)
         next_period = now + max_period
         while True:
@@ -1143,6 +1139,8 @@ class Twitch:
                 trigger_type = "Cleanup"
             else:
                 trigger_type = "Points"
+            with open('healthcheck.timestamp', 'w') as f:
+                f.write(str(int(next_trigger.timestamp())))
             logger.log(
                 CALL,
                 (
